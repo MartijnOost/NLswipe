@@ -1,39 +1,34 @@
 // Pagecreate will fire for each of the pages in this demo
 // but we only need to bind once so we use "one()"
+
+var bands = []
+
 $( document ).one( "pagecreate", ".demo-page", function() {
 	// Initialize the external persistent header and footer
 	$( "#header" ).toolbar({ theme: "b" });
 	$( "#footer" ).toolbar({ theme: "b" });
 
-
-
 	// Handler for navigating to the nope page
-	function navNope( nope ) {
+	function navNextRight( next) {
 
-		$( ":mobile-pagecontainer" ).pagecontainer( "change", nope + ".html", {
-			transition: "slide"
-		});
-		playAudio()
-	}
-
-	// Handler for navigating to the like page
-	function navLike( like ) {
-
-		$("#audio-player")
-		$( ":mobile-pagecontainer" ).pagecontainer( "change", like + ".html", {
+		$( ":mobile-pagecontainer" ).pagecontainer( "change", next + ".html", {
 			transition: "slide",
-			reverse: true
+            reverse: true
 		});
 		playAudio()
-
 	}
+
+    // Handler for navigating to the nope page
+    function navNextLeft( next ) {
+
+        $( ":mobile-pagecontainer" ).pagecontainer( "change", next + ".html", {
+            transition: "slide"
+        });
+        playAudio()
+    }
 
 	function storeLike( thePage ) {
-        likedTitel = thePage.jqmData( "title" )
-        allLikes = thePage.jqmData( "allLikes")
-        thePage.jqmData( "allLikes",  string(thePage.jqmData( "allLikes" )) + "," + likedTitel)
-        allLikes = thePage.jqmData( "allLikes")
-
+        bands.push(thePage.jqmData( "title" ))
     }
 
     function playAudio() {
@@ -45,42 +40,43 @@ $( document ).one( "pagecreate", ".demo-page", function() {
 	$( document ).on( "swipeleft", ".ui-page", function( event ) {
 		// Get the filename of the next page. We stored that in the data-next
 		// attribute in the original markup.
-		var nope = $( this ).jqmData( "nope" );
+		var next = $( this ).jqmData( "next" );
 
 		// Check if there is a next page and
 		// swipes may also happen when the user highlights text, so ignore those.
 		// We're only interested in swipes on the page.
-		if ( nope && ( event.target === $( this )[ 0 ] ) ) {
-			navNope( nope );
+		if ( next && ( event.target === $( this )[ 0 ] ) ) {
+			navNextLeft( next, "reverse" );
 		}
 
 	});
 
 	// Navigate to the nope page when the "nope" button in the footer is clicked
 	$( document ).on( "click", ".nope", function() {
-		var nope = $( ".ui-page-active" ).jqmData( "nope" );
+		var next = $( ".ui-page-active" ).jqmData( "next" );
 
 		// Check if there is a nope page
-		if ( nope ) {
-			navNope( nope );
+		if ( next ) {
+			navNextRight( next );
 		}
 	});
 
 	// The same for the navigating to the like page
 	$( document ).on( "swiperight", ".ui-page", function( event ) {
-		var like = $( this ).jqmData( "like" );
+		var next = $( this ).jqmData( "next" );
+        storeLike($( this ))
+		if ( next && ( event.target === $( this )[ 0 ] ) ) {
 
-		if ( like && ( event.target === $( this )[ 0 ] ) ) {
-			storeLike($( this ))
-			navLike( like );
+			navNextRight( next );
 		}
 	});
 
 	$( document ).on( "click", ".like", function() {
-		var like = $( ".ui-page-active" ).jqmData( "like" );
+		var next = $( ".ui-page-active" ).jqmData( "next" );
 
-		if ( like ) {
-			navLike( like );
+		storeLike($( ".ui-page-active" ))
+		if ( next ) {
+			navNextLeft( next );
 		}
 	});
 
@@ -95,12 +91,23 @@ $( document ).one( "pagecreate", ".demo-page", function() {
 
 });
 
+$( document ).on( "pageshow", "#result", function() {
+
+    for (var i = 0; i < bands.length; i++) {
+
+        $( ".ui-body #band_"+ i ).text( bands[i] );
+    }
+
+	$( ".nope" ).addClass( "ui-state-hide" );
+    $( ".like" ).addClass( "ui-state-hide" );
+
+});
+
 $( document ).on( "pageshow", ".demo-page", function() {
 
 	var thePage = $( this ),
 		title = thePage.jqmData( "title" ),
-		nope  = thePage.jqmData( "nope" ),
-		like  = thePage.jqmData( "like" ),
+		next  = thePage.jqmData( "next" ),
     	song  = thePage.jqmData( "song" )
 
     function playSong(sourceUrl) {
@@ -132,8 +139,8 @@ $( document ).on( "pageshow", ".demo-page", function() {
 	// Prefetch the nope page
 	// We added data-dom-cache="true" to the page so it won't be deleted
 	// so there is no need to prefetch it
-	if ( nope ) {
-		$( ":mobile-pagecontainer" ).pagecontainer( "load", nope + ".html" );
+	if ( next ) {
+		$( ":mobile-pagecontainer" ).pagecontainer( "load", next + ".html" );
 	}
 
 	// We disable the nope or likeious buttons in the footer
@@ -141,24 +148,5 @@ $( document ).on( "pageshow", ".demo-page", function() {
 	// We use the same footer on each page
 	// so first we remove the disabled class if it is there
 	$( ".nope.ui-state-disabled, .like.ui-state-disabled" ).removeClass( "ui-state-disabled" );
-
-	if ( ! nope ) {
-		$( ".nope" ).addClass( "ui-state-disabled" );
-	}
-	if ( ! like ) {
-		$( ".like" ).addClass( "ui-state-disabled" );
-	}
-
-	// Create an array of the links to choose from:
-	//       var links = ["/kalf_1.html", "/kalf_2.html", "/kalf_3.html", "/kalf_4.html", "/moments_1.html", "/moments_2.html",  "/moments_3.html",  "/moments_4.html"];
-    var links = ["/moments_1.html"];
-
-    function openLink() {
-        // Chooses a random link:
-        var i = Math.floor(Math.random() * links.length);
-        // Directs the browser to the chosen target:
-        window.location.href = "swipe-page" + links[i];
-        return false;
-    }
 
 });
